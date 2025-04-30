@@ -91,10 +91,6 @@ The goal is to decide whether {{agentName}} should respond to the last message.
 
 {{recentMessages}}
 
-Thread of Tweets You Are Replying To:
-
-{{formattedConversation}}
-
 # INSTRUCTIONS: Choose the option that best describes {{agentName}}'s response to the last message. Ignore messages if they are addressed to someone else.
 ` + shouldRespondFooter;
 var telegramMessageHandlerTemplate = (
@@ -127,12 +123,7 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{recentMessages}}
 
-# Task: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
-Current Post:
-{{currentPost}}
-Thread of Tweets You Are Replying To:
-
-{{formattedConversation}}
+# Instructions: Write the next message for {{agentName}}. Include an action, if appropriate. {{actionNames}}
 ` + messageCompletionFooter
 );
 var telegramAutoPostTemplate = `# Action Examples
@@ -335,10 +326,7 @@ var MessageManager = class {
     this.bot = bot;
     this.runtime = runtime;
     this._initializeTeamMemberUsernames().catch(
-      (error) => elizaLogger.error(
-        "Error initializing team member usernames:",
-        error
-      )
+      (error) => elizaLogger.error("Error initializing team member usernames:", error)
     );
     this.autoPostConfig = {
       enabled: ((_c = (_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.autoPost) == null ? void 0 : _c.enabled) || false,
@@ -354,8 +342,7 @@ var MessageManager = class {
   }
   async _initializeTeamMemberUsernames() {
     var _a, _b;
-    if (!((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.isPartOfTeam))
-      return;
+    if (!((_b = (_a = this.runtime.character.clientConfig) == null ? void 0 : _a.telegram) == null ? void 0 : _b.isPartOfTeam)) return;
     const teamAgentIds = this.runtime.character.clientConfig.telegram.teamAgentIds || [];
     for (const id of teamAgentIds) {
       try {
@@ -376,27 +363,26 @@ var MessageManager = class {
   }
   _startAutoPostMonitoring() {
     if (this.bot.botInfo) {
-      elizaLogger.info(
-        "[AutoPost Telegram] Bot ready, starting monitoring"
-      );
+      elizaLogger.info("[AutoPost Telegram] Bot ready, starting monitoring");
       this._initializeAutoPost();
     } else {
       elizaLogger.info(
         "[AutoPost Telegram] Bot not ready, waiting for ready event"
       );
       this.bot.telegram.getMe().then(() => {
-        elizaLogger.info(
-          "[AutoPost Telegram] Bot ready, starting monitoring"
-        );
+        elizaLogger.info("[AutoPost Telegram] Bot ready, starting monitoring");
         this._initializeAutoPost();
       });
     }
   }
   _initializeAutoPost() {
     setTimeout(() => {
-      this.autoPostInterval = setInterval(() => {
-        this._checkChannelActivity();
-      }, Math.floor(Math.random() * (4 * 60 * 60 * 1e3) + 2 * 60 * 60 * 1e3));
+      this.autoPostInterval = setInterval(
+        () => {
+          this._checkChannelActivity();
+        },
+        Math.floor(Math.random() * (4 * 60 * 60 * 1e3) + 2 * 60 * 60 * 1e3)
+      );
     }, 5e3);
   }
   async _checkChannelActivity() {
@@ -447,14 +433,13 @@ var MessageManager = class {
             this.splitMessage(responseContent.text.trim()).map(
               (chunk) => this.bot.telegram.sendMessage(
                 this.autoPostConfig.mainChannelId,
-                chunk
+                chunk,
+                { parse_mode: "Markdown" }
               )
             )
           );
           const memories = messages.map((m) => ({
-            id: stringToUuid(
-              roomId + "-" + m.message_id.toString()
-            ),
+            id: stringToUuid(roomId + "-" + m.message_id.toString()),
             userId: this.runtime.agentId,
             agentId: this.runtime.agentId,
             content: {
@@ -499,9 +484,7 @@ var MessageManager = class {
     }
     const pinnedMessage = ctx.message.pinned_message;
     if (!pinnedMessage) return;
-    if (!this.autoPostConfig.pinnedMessagesGroups.includes(
-      ctx.chat.id.toString()
-    ))
+    if (!this.autoPostConfig.pinnedMessagesGroups.includes(ctx.chat.id.toString()))
       return;
     const mainChannel = this.autoPostConfig.mainChannelId;
     if (!mainChannel) return;
@@ -510,9 +493,7 @@ var MessageManager = class {
         `[AutoPost Telegram] Processing pinned message in group ${ctx.chat.id}`
       );
       const messageContent = "text" in pinnedMessage && typeof pinnedMessage.text === "string" ? pinnedMessage.text : "caption" in pinnedMessage && typeof pinnedMessage.caption === "string" ? pinnedMessage.caption : "New pinned message";
-      const roomId = stringToUuid(
-        mainChannel + "-" + this.runtime.agentId
-      );
+      const roomId = stringToUuid(mainChannel + "-" + this.runtime.agentId);
       const memory = {
         id: stringToUuid(`pinned-${Date.now()}`),
         userId: this.runtime.agentId,
@@ -547,7 +528,9 @@ var MessageManager = class {
       if (!(responseContent == null ? void 0 : responseContent.text)) return;
       const messages = await Promise.all(
         this.splitMessage(responseContent.text.trim()).map(
-          (chunk) => this.bot.telegram.sendMessage(mainChannel, chunk)
+          (chunk) => this.bot.telegram.sendMessage(mainChannel, chunk, {
+            parse_mode: "Markdown"
+          })
         )
       );
       const memories = messages.map((m) => ({
@@ -690,10 +673,7 @@ var MessageManager = class {
       );
     }
     if (this._isTeamLeader() && chatState.messages.length > 0) {
-      if (!this._isRelevantToTeamMember(
-        (lastMessage == null ? void 0 : lastMessage.content.text) || "",
-        chatId
-      )) {
+      if (!this._isRelevantToTeamMember((lastMessage == null ? void 0 : lastMessage.content.text) || "", chatId)) {
         const recentTeamResponses = chatState.messages.slice(-3).some(
           (m) => m.userId !== this.runtime.agentId && this._isTeamMember(m.userId.toString())
         );
@@ -713,9 +693,7 @@ var MessageManager = class {
       elizaLogger.info(`Telegram Message: ${message2}`);
       if ("photo" in message2 && ((_a = message2.photo) == null ? void 0 : _a.length) > 0) {
         const photo = message2.photo[message2.photo.length - 1];
-        const fileLink = await this.bot.telegram.getFileLink(
-          photo.file_id
-        );
+        const fileLink = await this.bot.telegram.getFileLink(photo.file_id);
         imageUrl = fileLink.toString();
       } else if ("document" in message2 && ((_c = (_b = message2.document) == null ? void 0 : _b.mime_type) == null ? void 0 : _c.startsWith("image/"))) {
         const fileLink = await this.bot.telegram.getFileLink(
@@ -766,9 +744,7 @@ ${description}]` };
           const randomDelay = Math.floor(
             Math.random() * (TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MAX - TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MIN)
           ) + TIMING_CONSTANTS.TEAM_MEMBER_DELAY_MIN;
-          await new Promise(
-            (resolve) => setTimeout(resolve, randomDelay)
-          );
+          await new Promise((resolve) => setTimeout(resolve, randomDelay));
           return true;
         }
       }
@@ -796,9 +772,7 @@ ${description}]` };
         const randomDelay = Math.floor(
           Math.random() * (TIMING_CONSTANTS.LEADER_DELAY_MAX - TIMING_CONSTANTS.LEADER_DELAY_MIN)
         ) + TIMING_CONSTANTS.LEADER_DELAY_MIN;
-        await new Promise(
-          (resolve) => setTimeout(resolve, randomDelay)
-        );
+        await new Promise((resolve) => setTimeout(resolve, randomDelay));
         if ((_l = chatState == null ? void 0 : chatState.messages) == null ? void 0 : _l.length) {
           const recentResponses = chatState.messages.slice(
             -MESSAGE_CONSTANTS.RECENT_MESSAGE_COUNT
@@ -825,7 +799,9 @@ ${description}]` };
         }
       }
       if (!this._isMessageForMe(message2) && this.interestChats[chatId]) {
-        const recentMessages = this.interestChats[chatId].messages.slice(-MESSAGE_CONSTANTS.CHAT_HISTORY_COUNT);
+        const recentMessages = this.interestChats[chatId].messages.slice(
+          -MESSAGE_CONSTANTS.CHAT_HISTORY_COUNT
+        );
         const ourMessageCount = recentMessages.filter(
           (m) => m.userId === this.runtime.agentId
         ).length;
@@ -838,7 +814,10 @@ ${description}]` };
       }
     }
     if (chatState == null ? void 0 : chatState.currentHandler) {
-      const shouldRespondContext = await this._shouldRespondBasedOnContext(message2, chatState);
+      const shouldRespondContext = await this._shouldRespondBasedOnContext(
+        message2,
+        chatState
+      );
       if (!shouldRespondContext) {
         return false;
       }
@@ -911,13 +890,9 @@ ${description}]` };
       const sendFunctionMap = {
         ["photo" /* PHOTO */]: ctx.telegram.sendPhoto.bind(ctx.telegram),
         ["video" /* VIDEO */]: ctx.telegram.sendVideo.bind(ctx.telegram),
-        ["document" /* DOCUMENT */]: ctx.telegram.sendDocument.bind(
-          ctx.telegram
-        ),
+        ["document" /* DOCUMENT */]: ctx.telegram.sendDocument.bind(ctx.telegram),
         ["audio" /* AUDIO */]: ctx.telegram.sendAudio.bind(ctx.telegram),
-        ["animation" /* ANIMATION */]: ctx.telegram.sendAnimation.bind(
-          ctx.telegram
-        )
+        ["animation" /* ANIMATION */]: ctx.telegram.sendAnimation.bind(ctx.telegram)
       };
       const sendFunction = sendFunctionMap[type];
       if (!sendFunction) {
@@ -931,11 +906,7 @@ ${description}]` };
         }
         const fileStream = fs.createReadStream(mediaPath);
         try {
-          await sendFunction(
-            ctx.chat.id,
-            { source: fileStream },
-            { caption }
-          );
+          await sendFunction(ctx.chat.id, { source: fileStream }, { caption });
         } finally {
           fileStream.destroy();
         }
@@ -1021,9 +992,7 @@ ${description}]` };
       const isLeader = this._isTeamLeader();
       if (hasInterest && !isDirectlyMentioned) {
         const lastSelfMemories = await this.runtime.messageManager.getMemories({
-          roomId: stringToUuid(
-            chatId + "-" + this.runtime.agentId
-          ),
+          roomId: stringToUuid(chatId + "-" + this.runtime.agentId),
           unique: false,
           count: 5
         });
@@ -1187,7 +1156,9 @@ ${description}]` };
           context
         );
         if (!responseContent || !responseContent.text) return;
-        const action = this.runtime.actions.find((a) => a.name === responseContent.action);
+        const action = this.runtime.actions.find(
+          (a) => a.name === responseContent.action
+        );
         const shouldSuppressInitialMessage = action == null ? void 0 : action.suppressInitialMessage;
         let responseMessages = [];
         if (!shouldSuppressInitialMessage) {
@@ -1432,7 +1403,7 @@ var TelegramClient = class {
   }
 };
 
-// ../../node_modules/zod/lib/index.mjs
+// ../../../node_modules/zod/lib/index.mjs
 var util;
 (function(util2) {
   util2.assertEqual = (val) => val;
@@ -5253,16 +5224,32 @@ ZodReadonly.create = (type, params) => {
     ...processCreateParams(params)
   });
 };
-function custom(check, params = {}, fatal) {
+function cleanParams(params, data) {
+  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
+  const p2 = typeof p === "string" ? { message: p } : p;
+  return p2;
+}
+function custom(check, _params = {}, fatal) {
   if (check)
     return ZodAny.create().superRefine((data, ctx) => {
       var _a, _b;
-      if (!check(data)) {
-        const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
-        const _fatal = (_b = (_a = p.fatal) !== null && _a !== void 0 ? _a : fatal) !== null && _b !== void 0 ? _b : true;
-        const p2 = typeof p === "string" ? { message: p } : p;
-        ctx.addIssue({ code: "custom", ...p2, fatal: _fatal });
+      const r = check(data);
+      if (r instanceof Promise) {
+        return r.then((r2) => {
+          var _a2, _b2;
+          if (!r2) {
+            const params = cleanParams(_params, data);
+            const _fatal = (_b2 = (_a2 = params.fatal) !== null && _a2 !== void 0 ? _a2 : fatal) !== null && _b2 !== void 0 ? _b2 : true;
+            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+          }
+        });
       }
+      if (!r) {
+        const params = cleanParams(_params, data);
+        const _fatal = (_b = (_a = params.fatal) !== null && _a !== void 0 ? _a : fatal) !== null && _b !== void 0 ? _b : true;
+        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+      }
+      return;
     });
   return ZodAny.create();
 }
