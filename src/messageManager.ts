@@ -236,8 +236,8 @@ export class MessageManager {
 						this.splitMessage(responseContent.text.trim()).map((chunk) =>
 							this.bot.telegram.sendMessage(
 								this.autoPostConfig.mainChannelId,
-								chunk,
-								{ parse_mode: "Markdown" },
+								escapeMarkdown(chunk),
+								{ parse_mode: "MarkdownV2" },
 							),
 						),
 					);
@@ -358,8 +358,8 @@ export class MessageManager {
 			// Send message using telegram bot
 			const messages = await Promise.all(
 				this.splitMessage(responseContent.text.trim()).map((chunk) =>
-					this.bot.telegram.sendMessage(mainChannel, chunk, {
-						parse_mode: "Markdown",
+					this.bot.telegram.sendMessage(mainChannel, escapeMarkdown(chunk), {
+						parse_mode: "MarkdownV2",
 					}),
 				),
 			);
@@ -903,7 +903,7 @@ export class MessageManager {
 							i === 0 && replyToMessageId
 								? { message_id: replyToMessageId }
 								: undefined,
-						parse_mode: "Markdown",
+						parse_mode: "MarkdownV2",
 					},
 				)) as Message.TextMessage;
 
