@@ -433,8 +433,8 @@ var MessageManager = class {
             this.splitMessage(responseContent.text.trim()).map(
               (chunk) => this.bot.telegram.sendMessage(
                 this.autoPostConfig.mainChannelId,
-                chunk,
-                { parse_mode: "Markdown" }
+                escapeMarkdown(chunk),
+                { parse_mode: "MarkdownV2" }
               )
             )
           );
@@ -528,8 +528,8 @@ var MessageManager = class {
       if (!(responseContent == null ? void 0 : responseContent.text)) return;
       const messages = await Promise.all(
         this.splitMessage(responseContent.text.trim()).map(
-          (chunk) => this.bot.telegram.sendMessage(mainChannel, chunk, {
-            parse_mode: "Markdown"
+          (chunk) => this.bot.telegram.sendMessage(mainChannel, escapeMarkdown(chunk), {
+            parse_mode: "MarkdownV2"
           })
         )
       );
@@ -876,7 +876,7 @@ ${description}]` };
           chunk,
           {
             reply_parameters: i === 0 && replyToMessageId ? { message_id: replyToMessageId } : void 0,
-            parse_mode: "Markdown"
+            parse_mode: "MarkdownV2"
           }
         );
         sentMessages.push(sentMessage);
