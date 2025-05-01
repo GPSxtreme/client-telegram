@@ -253,17 +253,28 @@ function cosineSimilarity(text1, text2, text3) {
   );
   return dotProduct / maxMagnitude;
 }
-function escapeMarkdown(text) {
+function escapeMarkdownV2(text) {
   if (text.startsWith("```") && text.endsWith("```")) {
     return text;
   }
-  const parts = text.split(/(```[\s\S]*?```)/g);
-  return parts.map((part, index) => {
-    if (index % 2 === 1) {
-      return part;
+  const placeholders = [];
+  let placeholderIndex = 0;
+  const textWithPlaceholders = text.replace(
+    /(```[\s\S]*?```|`.*?`)/g,
+    (match) => {
+      placeholders[placeholderIndex] = match;
+      return `__PLACEHOLDER_${placeholderIndex++}__`;
     }
-    return part.replace(/`.*?`/g, (match) => match).replace(/([*_`\\])/g, "\\$1");
-  }).join("");
+  );
+  const escapedText = textWithPlaceholders.replace(
+    /[\{}\(\)>#+\-=|.!]/g,
+    "\\$&"
+  );
+  let finalText = escapedText;
+  for (let i = 0; i < placeholders.length; i++) {
+    finalText = finalText.replace(`__PLACEHOLDER_${i}__`, placeholders[i]);
+  }
+  return finalText;
 }
 
 // src/constants.ts
@@ -433,7 +444,7 @@ var MessageManager = class {
             this.splitMessage(responseContent.text.trim()).map(
               (chunk) => this.bot.telegram.sendMessage(
                 this.autoPostConfig.mainChannelId,
-                escapeMarkdown(chunk),
+                escapeMarkdownV2(chunk),
                 { parse_mode: "MarkdownV2" }
               )
             )
@@ -528,7 +539,7 @@ var MessageManager = class {
       if (!(responseContent == null ? void 0 : responseContent.text)) return;
       const messages = await Promise.all(
         this.splitMessage(responseContent.text.trim()).map(
-          (chunk) => this.bot.telegram.sendMessage(mainChannel, escapeMarkdown(chunk), {
+          (chunk) => this.bot.telegram.sendMessage(mainChannel, escapeMarkdownV2(chunk), {
             parse_mode: "MarkdownV2"
           })
         )
@@ -870,7 +881,7 @@ ${description}]` };
       const chunks = this.splitMessage(content.text);
       const sentMessages = [];
       for (let i = 0; i < chunks.length; i++) {
-        const chunk = escapeMarkdown(chunks[i]);
+        const chunk = escapeMarkdownV2(chunks[i]);
         const sentMessage = await ctx.telegram.sendMessage(
           ctx.chat.id,
           chunk,
