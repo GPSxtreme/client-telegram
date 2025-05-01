@@ -26,7 +26,7 @@ import {
 	telegramAutoPostTemplate,
 	telegramPinnedMessageTemplate,
 } from "./templates";
-import { cosineSimilarity, escapeMarkdown } from "./utils";
+import { cosineSimilarity, escapeMarkdownV2 } from "./utils";
 import {
 	MESSAGE_CONSTANTS,
 	TIMING_CONSTANTS,
@@ -236,7 +236,7 @@ export class MessageManager {
 						this.splitMessage(responseContent.text.trim()).map((chunk) =>
 							this.bot.telegram.sendMessage(
 								this.autoPostConfig.mainChannelId,
-								escapeMarkdown(chunk),
+								escapeMarkdownV2(chunk),
 								{ parse_mode: "MarkdownV2" },
 							),
 						),
@@ -358,7 +358,7 @@ export class MessageManager {
 			// Send message using telegram bot
 			const messages = await Promise.all(
 				this.splitMessage(responseContent.text.trim()).map((chunk) =>
-					this.bot.telegram.sendMessage(mainChannel, escapeMarkdown(chunk), {
+					this.bot.telegram.sendMessage(mainChannel, escapeMarkdownV2(chunk), {
 						parse_mode: "MarkdownV2",
 					}),
 				),
@@ -894,7 +894,7 @@ export class MessageManager {
 			const sentMessages: Message.TextMessage[] = [];
 
 			for (let i = 0; i < chunks.length; i++) {
-				const chunk = escapeMarkdown(chunks[i]);
+				const chunk = escapeMarkdownV2(chunks[i]);
 				const sentMessage = (await ctx.telegram.sendMessage(
 					ctx.chat.id,
 					chunk,
